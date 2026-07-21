@@ -5,11 +5,11 @@ Plugin URI: https://wordpress.org/plugins/wp-server-stats/
 Description: Show up the memory limit and current memory usage in the dashboard and admin footer
 Author: Saumya Majumder
 Author URI: https://isaumya.com/
-Version: 1.8.0
+Version: 1.9.1
 Requires PHP: 7.4.0
 Text Domain: wp-server-stats
-License: GPLv3 or later
-License URI: https://www.gnu.org/licenses/gpl-3.0.html
+License: GPLv2 or later
+License URI: http://www.gnu.org/licenses/gpl-2.0.html
 */
 
 defined('ABSPATH') or die('No script kiddies please!');
@@ -86,10 +86,14 @@ if (is_admin()) {
 
       public function wpss_cache_purge_callback()
       {
-        if (!isset($_POST['wpss_nonce']) || !wp_verify_nonce( sanitize_text_field( wp_unslash( $_POST['prefix_nonce'] ) ), 'wpss_slc_nonce')) {
+        if (!isset($_POST['wpss_nonce']) || !wp_verify_nonce( sanitize_text_field( wp_unslash( $_POST['wpss_nonce'] ) ), 'wpss_slc_nonce')) {
           die('Permission Check Failed');
         }
-        
+
+        if (!current_user_can('manage_options')) {
+          die('Permission Check Failed');
+        }
+
         global $wpdb; /* this is how you get access to the database */
         /* You cache purge logic should go here. */
         delete_option('wpss_db_advanced_info');
@@ -601,7 +605,7 @@ if (is_admin()) {
 
         /* If Shell is enablelled then execute the CPU Load, Memory Load, RAM Load and Uptime */
         if ($this->isShellEnabled()) {
-          $cpu_load = trim(shell_exec("echo $((`ps aux|awk 'NR > 0 { s +=$3 }; END {print s}'| cut -d . -f 1` / `cat /proc/cpuinfo | grep cores | grep -o '[0-9]' | wc -l`))"));
+          $cpu_load = trim(shell_exec("echo $((`ps aux|awk 'NR > 0 { s +=$3 }; END {print s}'| cut -d . -f 1` / `cat /proc/cpuinfo | grep '^processor' | wc -l`))"));
           $memory_usage_MB = function_exists('memory_get_usage') ? round(memory_get_usage() / 1024 / 1024, 2) : 0;
           $memory_usage_pos = round((($memory_usage_MB / (int)$this->check_memory_limit_cal()) * 100), 0);
           $total_ram_server = (is_numeric($this->check_total_ram()) ? (int) $this->check_total_ram() : 0);
